@@ -34,7 +34,7 @@ body{display:flex;align-items:center;justify-content:center;overflow:hidden;colo
 #pt{z-index:2}
 #pb{z-index:4}
 body.play #pt,body.play #pb{display:none}
-@media (prefers-reduced-motion:reduce){.left>*,.art,.photo{animation:none}.logo img{animation:none;filter:drop-shadow(0 0 calc(.6*var(--u)) rgba(255,255,255,.5))}#pt,#pb{display:none}}
+@media (prefers-reduced-motion:reduce){.accbody,.chev{transition:none}.left>*,.art,.left .photo{animation:none}.logo img{animation:none;filter:drop-shadow(0 0 calc(.6*var(--u)) rgba(255,255,255,.5))}#pt,#pb{display:none}}
 .left.main>button{height:calc(4.6*var(--u));font-size:calc(2.6*var(--u))}
 .art.sm{width:calc(40*var(--u));height:calc(40*var(--u))}
 .art.hide{display:none}
@@ -50,7 +50,7 @@ body.play #pt,body.play #pb{display:none}
 .photo{margin:0;width:calc(22*var(--u));box-sizing:border-box;padding:calc(1.6*var(--u)) calc(1.6*var(--u)) calc(1*var(--u));background:#fff;color:#000;rotate:var(--r);box-shadow:0 calc(.6*var(--u)) calc(1.8*var(--u)) rgba(255,255,255,.15);animation:fl 7s ease-in-out infinite}
 .photo:nth-child(2n){animation-duration:8.4s;animation-delay:-3.3s}
 .photo:nth-child(3n){animation-duration:6.2s;animation-delay:-1.8s}
-.photo img{display:block;width:100%;aspect-ratio:3/4;object-fit:contain;background:#fff}
+.photo img{display:block;box-sizing:border-box;width:100%;aspect-ratio:3/4;padding:calc(1*var(--u));object-fit:contain;background:#000} /* papel fotografico: marco blanco, la foto en si es negra donde el PNG es transparente */
 .photo figcaption{padding-top:calc(1*var(--u));text-align:center;font:700 calc(2.6*var(--u)) system-ui,sans-serif;letter-spacing:.2em;text-transform:uppercase}
 .left.logros{width:calc(86*var(--u));top:calc(2*var(--u));gap:calc(1.2*var(--u))}
 .left.logros>button{height:calc(5.4*var(--u))}
@@ -105,6 +105,14 @@ button:hover,button:focus-visible{box-shadow:0 0 calc(1.4*var(--u)) #fff,inset 0
 .modal.on{display:flex}
 .panel{box-sizing:border-box;width:calc(52*var(--u));padding:calc(2*var(--u));display:flex;flex-direction:column;gap:calc(1*var(--u));background:rgba(0,0,0,.45);border:max(2px,calc(.25*var(--u))) solid #fff;-webkit-backdrop-filter:blur(calc(.9*var(--u)));backdrop-filter:blur(calc(.9*var(--u)))}
 .panel .t{margin:0}
+.acc{display:flex;align-items:center;gap:calc(1.5*var(--u))}
+.acc .cur{margin-left:auto;opacity:.7;letter-spacing:.05em;text-transform:none}
+.chev{font-style:normal;transition:rotate .25s}
+.acc[aria-expanded=true] .chev{rotate:180deg}
+/* Seccion de idioma desplegable: la fila de grid pasa de 0fr a 1fr (se anima); el margen negativo compensa el gap del panel mientras esta retraida */
+.accbody{display:grid;grid-template-rows:0fr;margin-top:calc(-1*var(--u));transition:grid-template-rows .25s ease,margin-top .25s ease}
+.accbody.open{grid-template-rows:1fr;margin-top:0}
+.accbody>.langs{overflow:hidden;min-height:0}
 .langs{display:grid;grid-template-columns:1fr 1fr;gap:calc(.6*var(--u))}
 .langs button{height:calc(3.3*var(--u));font-size:calc(1.9*var(--u));letter-spacing:.08em;text-transform:none}
 .langs button:first-child{grid-column:1/-1}
@@ -282,7 +290,7 @@ const I18N={
   allLost:"Все сохранения и достижения будут потеряны.", borrarTodo:"Удалить все данные"},
 };
 const browserLang=()=>{for(const l of navigator.languages||[navigator.language||'']){const c=String(l).slice(0,2).toLowerCase();if(LANGS[c])return c}return'en'};
-let langPref=(()=>{try{const v=localStorage.getItem(LKEY);return LANGS[v]?v:''}catch(e){return''}})(),lang=langPref||browserLang(),opts=false,dlg=null;
+let langPref=(()=>{try{const v=localStorage.getItem(LKEY);return LANGS[v]?v:''}catch(e){return''}})(),lang=langPref||browserLang(),opts=false,dlg=null,langOpen=false;
 const t=(k,...a)=>(I18N[lang][k]??I18N.es[k]).replace(/\{(\d)\}/g,(_,i)=>a[i]);
 // Puntuacion y rango. REC_T = tiempo (s) de la ruta record del nivel 1 con todos los secretos (valor PROVISIONAL: ajustalo con tu mejor ruta).
 // El SCORE usa el tiempo record exacto (REC_T); solo el rango P suma el margen: REC_T + MARGEN s o menos, sin morir y con todos los secretos de ESA partida.
@@ -339,8 +347,8 @@ addEventListener('resize',()=>{if(screen=='logros')sliderSync()});
 // Ventana emergente translucida: Opciones (idioma + borrar todo) o confirmacion de borrado (dlg). Aqui ira tambien el slider de Opciones.
 function renderModal(){const on=opts||dlg;MD.className='modal'+(on?' on':'');L.toggleAttribute('inert',!!on);A.toggleAttribute('inert',!!on);
  MD.innerHTML=dlg?'<div class="panel"><h2 class="t">'+t('borrar')+'</h2><p class="msg">'+(dlg.k=='slot'?t('confirmSlot',dlg.i+1):t('confirmAll'))+'</p><p class="sub">'+(dlg.k=='slot'?'':t('allLost')+' ')+t('noUndo')+'</p><div class="two"><button data-a="cancel">'+t('cancelar')+'</button><button class="danger" data-a="confirm">'+t('borrar')+'</button></div></div>'
- :opts?'<div class="panel"><h2 class="t">'+t('opciones')+'</h2><div class="row"><b>'+t('idioma')+'</b></div><div class="langs">'+[['',t('auto')],...Object.entries(LANGS)].map(([c,n])=>'<button'+(c==langPref?' class="sel"':'')+' data-a="lang" data-i="'+c+'">'+n+'</button>').join('')+'</div><button class="danger" data-a="delall">'+t('borrarTodo')+'</button>'+btn('cerrar',t('cerrar'))+'</div>':'';
- if(on){const f=dlg?MD.querySelector('button'):MD.querySelector('.sel')||MD.querySelector('button');f&&f.focus({preventScroll:true})}}
+ :opts?'<div class="panel"><h2 class="t">'+t('opciones')+'</h2><button class="acc" data-a="langtoggle" aria-expanded="'+langOpen+'"><span>'+t('idioma')+'</span><span class="cur">'+LANGS[lang]+'</span><i class="chev">▾</i></button><div class="accbody'+(langOpen?' open':'')+'"'+(langOpen?'':' inert')+'><div class="langs">'+[['',t('auto')],...Object.entries(LANGS)].map(([c,n])=>'<button'+(c==langPref?' class="sel"':'')+' data-a="lang" data-i="'+c+'">'+n+'</button>').join('')+'</div></div><button class="danger" data-a="delall">'+t('borrarTodo')+'</button>'+btn('cerrar',t('cerrar'))+'</div>':'';
+ if(on){const f=dlg?MD.querySelector('button'):(langOpen&&MD.querySelector('.sel'))||MD.querySelector('button');f&&f.focus({preventScroll:true})}}
 function setLang(v){langPref=v;lang=v||browserLang();try{v?localStorage.setItem(LKEY,v):localStorage.removeItem(LKEY)}catch(e){}applyLang()}
 let animId=0;
 function animResult(r){const id=++animId,t0=performance.now(),D=3000,ST=D+700,el=k=>document.getElementById(k),e=p=>1-Math.pow(1-p,3),
@@ -358,7 +366,9 @@ function go(a,i){
  else if(a=='siguiente'){if(result&&result.lv==1)play(2);else screen='levels'} // nivel 1 -> nivel 2; nivel 2 -> menu de niveles
  else if(a=='nivel')play(+i);
  else if(a=='logros'||a=='arte')screen=a;
- else if(a=='opciones')opts=true;else if(a=='cerrar'){if(dlg)dlg=null;else opts=false}else if(a=='lang')setLang(i);
+ else if(a=='opciones'){opts=true;langOpen=false}
+ else if(a=='langtoggle'){langOpen=!langOpen;const bd=MD.querySelector('.accbody');MD.querySelector('.acc').setAttribute('aria-expanded',langOpen);bd.classList.toggle('open',langOpen);bd.toggleAttribute('inert',!langOpen);return} // desplegar/retraer sin redibujar, para que se anime
+ else if(a=='cerrar'){if(dlg)dlg=null;else opts=false}else if(a=='lang')setLang(i);
  else if(a=='delslot')dlg={k:'slot',i:+i};else if(a=='delall')dlg={k:'all'};else if(a=='cancel')dlg=null;
  else if(a=='confirm'){if(dlg.k=='slot'){saves[dlg.i]=null;store()}else wipeAll();dlg=null}
  render()
